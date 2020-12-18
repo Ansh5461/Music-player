@@ -1,0 +1,319 @@
+from tkinter import *
+from PIL import ImageTk,Image
+import PySimpleGUI as sg
+from tkinter import messagebox
+from tkinter.ttk import Progressbar
+
+#for opening dialogbox fr selecting songs
+from tkinter import filedialog
+from string import *
+
+#progress bar
+import time
+from mutagen.mp3 import MP3
+
+#music player
+import pygame
+pygame.mixer.init()
+
+#global variable to keep check on clicking button of play and pause
+c=0
+s=0
+filen=""
+destination=""
+prb=0
+o=0
+
+
+#coding for linked list for displaying name of the songs
+class node:
+    def __init__(self,data):
+        self.data=data
+        self.next=None
+        self.prev=None;
+class LinkedList:
+    def __init__(self):
+        self.start=None;
+    def insrt(self,value):
+        newNode=node(value)
+        if self.start==None:
+            self.start=newNode;
+        else:
+            temp=self.start
+            while temp.next!=None:
+                temp=temp.next
+            temp.next=newNode
+            newNode.prev=temp
+        return self.start
+    def delte(self,value):
+        if self.start==None:
+            print("No songs exist")
+        else:
+            ptr=self.start
+            preptr=self.start
+            while ptr.data!=value:
+                preptr=ptr
+                ptr=ptr.next
+            preptr.next=ptr.next
+        return self.start
+    def nxtsng(self,y):
+        global destination
+        if self.start is None:
+            messagebox.showinfo("Mesage","There's no next song")  
+        elif self.start is not None:
+            tem=self.start
+            x=destination+y+"mp3"
+            while tem is not None:
+                if tem.data==x:
+                    z=tem.next.data
+                    pygame.mixer.music.load(z)
+                    pygame.mixer.music.play(loops=0)
+                tem=tem.next
+        return self.start
+    def viewlist(self):
+        if self.start==None:
+            print("List is empty")
+        else:
+            temp=self.start
+            while temp!=None:
+                print(temp.data,end="\n")
+                temp=temp.next
+        return self.start 
+    def prevlist(self,y):
+        global destination
+        if self.start is None:
+            messagebox.showinfo("Mesage","There's no next song")  
+        elif self.start is not None:
+            tem=self.start
+            x=destination+y+"mp3"
+            while tem is not None:
+                if tem.data==x:
+                    z=tem.prev.data
+                    pygame.mixer.music.load(z)
+                    pygame.mixer.music.play(loops=0)
+                tem=tem.next
+        return self.start
+mylist=LinkedList()
+
+#------------------------------------------------------------------------------------------------------------------------
+#searching fn
+def srch():
+    global s
+    global destination
+    global filen
+    global prb,c
+    filen=filedialog.askopenfilename(initialdir="/",title="Select a file",filetypes=(("Text file","*.mp3*"),("all files","*")))
+    
+    #name of song after last /
+    #means excluding the path and .mp3 rest all
+    sn=filen.rfind("/")
+    snf=filen[sn+1:-3]
+    destination=filen[0:sn+1]
+    songname.configure(text=snf)
+
+    #Playing selected song
+    pygame.mixer.music.load(filen)
+    pygame.mixer.music.play(loops=0)
+    
+    songlist.delete(0,END)
+    songlist.insert(END,snf)
+    mylist.insrt(filen)
+    
+    
+    #ProgressBar function
+    audio = MP3(filen)
+    prb=audio.info.length
+    
+    bar.start(int(prb*10))
+
+    i=0
+    for i in range(int(prb)):
+        time.sleep(1)
+        var3.set(i)
+        root.update()
+        
+    
+    s=s+1
+c=s
+    
+#function for adding new song to the list
+def addsong():
+    adsng=filedialog.askopenfilename(initialdir="/",title="Select a file",filetypes=(("Text file","*.mp3*"),("all files","*")))
+    #name of song after last /
+    #means excluding the path and .mp3 rest all
+    sng=adsng.rfind("/")
+    sngname=adsng[sng+1:-3]
+    songlist.insert(END,sngname)
+    mylist.insrt(adsng)
+    
+    
+
+#Playing song
+def play():
+    global c,prb
+    if c%2==0:
+        pygame.mixer.music.pause()
+        bar.stop()
+        c=c+1
+    elif c%2!=0:
+        pygame.mixer.music.unpause()
+        bar.start(int(prb*10))
+        c=c+1
+        
+        
+#For playing next song
+def nxt():
+    next_song=songlist.get(ANCHOR)
+    mylist.nxtsng(next_song)
+    
+#For playing previous song
+def prevs():
+    prev_song=songlist.get(ANCHOR)
+    mylist.prevlist(prev_song)
+        
+        
+#playing the song selected by user
+def pl():
+    play_list=songlist.get(ANCHOR)
+    fullsong=destination+play_list+"mp3"
+    pygame.mixer.music.load(fullsong)
+    pygame.mixer.music.play(loops=0)
+    
+    #progressbar using tqdm
+    #path for the song
+    audio = MP3(fullsong)
+    prb=audio.info.length
+    bar['value']=0
+    bar.start(int(prb*10))
+
+    i=0
+    for i in range(int(prb)):
+        time.sleep(1)
+        var3.set(i)
+        root.update()
+    
+    
+    
+#Deleting selected songs
+def delt():
+    dlsng=songlist.get(ANCHOR)
+    mylist.delte(dlsng)
+    songlist.delete(ANCHOR)
+    
+#-----------------------------------------------------------------------------------------------------------------------        
+    
+root=Tk()
+root.geometry('1540x1000')
+root.title("MUSIC PLAYER")
+
+#-------------------------------------------------------------------------------------------------------------------------
+#left side of frame with all the options
+lframe=Frame(root,height=670,width=80,bd=2,highlightcolor="black",highlightbackground="black")
+lframe.pack_propagate(0)
+lframe.place(x=0,y=0)
+
+#search button
+img1=Image.open("C:\\Users\\Ansh Jhoshi\\Downloads\\play.png")
+img1=img1.resize((40,40),Image.ANTIALIAS)
+pic1=ImageTk.PhotoImage(img1)
+bt1=Button(lframe,text="current",image=pic1,command=pl)
+bt1.pack(anchor=NW,padx=5,pady=20)
+
+img2=Image.open("C:\\Users\\Ansh Jhoshi\\Downloads\\search.png")
+img2=img2.resize((40,40),Image.ANTIALIAS)
+pic2=ImageTk.PhotoImage(img2)
+bt2=Button(lframe,text="search",image=pic2,command=srch)
+bt2.pack(anchor=NW,padx=5)
+#line
+line=Frame(root,height=670,width=2,bg="black")
+line.pack_propagate(0)
+line.place(x=80,y=0)
+
+#--------------------------------------------------------------------------------------------------------------------------
+#middle of frame where cover of song will be displayed
+mframe=Frame(root,height=670,width=1250,bd=2,bg="white")
+mframe.pack_propagate(0)
+mframe.place(x=82,y=0)
+#Label with top name
+lbn=Label(mframe,text="Ansh's Music",font=("Times New Roman",24),highlightcolor="black",highlightbackground="black",bg="white")
+lbn.pack(anchor=NW,padx=5,pady=20)
+#a line to distinguish between them
+
+#this sngnm is song name, which we will define later
+songname=Label(mframe,text="--Select a song--",font=("Times New Roman",20),justify="center",bg="white")
+songname.pack(anchor=N,padx=5,pady=20,fill=BOTH)
+
+#---------------------------------------------------------------------------------------------------------------------
+#Bottom frame
+bframe=Frame(root,height=110,width=1540,bd=2,highlightcolor="black",highlightbackground="black")
+bframe.pack_propagate(False)
+bframe.place(x=0,y=700)
+
+#Frame for progressBar
+pframe=Frame(bframe,height=50,width=250)
+pframe.pack_propagate(0)
+pframe.pack(side=TOP)
+#ProgressBar for the amount of song played and amount of song left
+prg=DoubleVar()
+bar=Progressbar(pframe,length=200,variable=prg,style='white.Horizontal.TProgressbar')
+bar.pack(side=LEFT)
+
+var3=StringVar()
+lb=Label(pframe,textvariable=var3,width=20)
+lb.pack(side=LEFT)
+
+
+#Bottom grouping of buttons
+cframe=Frame(bframe,height=45,width=135,bd=5)
+cframe.pack_propagate(0)
+cframe.pack(side=TOP)
+#Previous button
+img4=Image.open("C:\\Users\\Ansh Jhoshi\\Downloads\\prev1.png")
+img4=img4.resize((35,35),Image.ANTIALIAS)
+pic4=ImageTk.PhotoImage(img4)
+btn4=Button(cframe,text="Previous song",image=pic4,command=prevs)
+btn4.pack(side=LEFT)
+#Play button
+img3=Image.open("C:\\Users\\Ansh Jhoshi\\Downloads\\play1.jpg")
+img3=img3.resize((35,35),Image.ANTIALIAS)
+pic3=ImageTk.PhotoImage(img3)
+btn3=Button(cframe,text="Play song",image=pic3,command=play)
+btn3.pack(side=LEFT)
+#Next button
+img5=Image.open("C:\\Users\\Ansh Jhoshi\\Downloads\\next1.png")
+img5=img5.resize((35,35),Image.ANTIALIAS)
+pic5=ImageTk.PhotoImage(img5)
+btn5=Button(cframe,text="Next song",image=pic5,command=nxt)
+btn5.pack(side=LEFT)
+
+#-----------------------------------------------------------------------------------------------------------------
+#Right frame where list of songs will be displayed
+rframe=Frame(root, height=670,width=200,bd=2)
+rframe.pack_propagate(False)
+rframe.place(x=1332,y=0)
+#Label for name of songs
+nms=Label(rframe,text="Playlist",font=("Times New Roman",20),justify="center")
+nms.pack(anchor=NW,padx=10,pady=10)
+
+#horizontal scrollbar
+scrollbar=Scrollbar(rframe)
+#Listbox for the songs
+songlist=Listbox(rframe,font=("Times New Roman",12),width=150,xscrollcommand = scrollbar.set )
+songlist.pack(anchor=NW,padx=10,pady=10,fill=BOTH)
+
+scrollbar.pack(anchor=NW,fill=X)
+scrollbar.config( command = songlist.xview ) 
+
+
+#frame for holding buttons
+btframe=Frame(rframe,height=50,width=200)
+btframe.pack(side=BOTTOM)
+
+#Buttons for adding or deleting songs
+btnremove=Button(btframe,text="Delete song",font=("Helvetica","10"),command=delt)
+btnremove.grid(row=1,column=0,sticky=W)
+btnadd=Button(btframe,text="Add songs",font=("Helvetica","10"),command=addsong)
+btnadd.grid(row=1,column=1,sticky=E)
+
+
+root.mainloop()
